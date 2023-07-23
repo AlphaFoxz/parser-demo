@@ -1,0 +1,79 @@
+WHITESPACE = _{ " " | "\t" | NEWLINE }
+LINE_COMMENT = _{ "#" ~ (!NEWLINE ~ ANY)* }
+COMMENT = _{ LINE_COMMENT }
+TERMINATOR = _{ ";" }
+
+key_root_block =  @{
+    "user" ~ &WHITESPACE
+    | "worker_processes" ~ &WHITESPACE
+    | "error_log" ~ &WHITESPACE
+    | "pid" ~ &WHITESPACE
+}
+key_events_block = @{
+    "worker_connections"
+}
+key_http_block = @{
+    "include" ~ &WHITESPACE
+    | "default_type" ~ &WHITESPACE
+    | "log_format" ~ &WHITESPACE
+    | "access_log" ~ &WHITESPACE
+    | "sendfile" ~ &WHITESPACE
+    | "tcp_nopush" ~ &WHITESPACE
+    | "client_max_body_size" ~ &WHITESPACE
+    | "keepalive_timeout" ~ &WHITESPACE
+    | "gzip" ~ &WHITESPACE
+    | "gzip" ~ &WHITESPACE
+}
+key_server_block = @{
+    "listen" ~ &WHITESPACE
+    | "server_name" ~ &WHITESPACE
+    | "charset" ~ &WHITESPACE
+    | "server_tokens" ~ &WHITESPACE
+    | "tcp_nopush" ~ &WHITESPACE
+    | "tcp_nodelay" ~ &WHITESPACE
+    | "keepalive_timeout" ~ &WHITESPACE
+    | "keepalive_requests" ~ &WHITESPACE
+    | "send_timeout" ~ &WHITESPACE
+    | "sendfile" ~ &WHITESPACE
+    | "client_max_body_size" ~ &WHITESPACE
+    | "client_body_buffer_size" ~ &WHITESPACE
+    | "client_body_timeout" ~ &WHITESPACE
+    | "client_header_buffer_size" ~ &WHITESPACE
+    | "client_header_timeout" ~ &WHITESPACE
+    | "client_header_hash_bucket_size" ~ &WHITESPACE
+    | "client_header_hash_max_size" ~ &WHITESPACE
+    | "client_header_hash_bucket_size" ~ &WHITESPACE
+    | "client_header_hash_max_size" ~ &WHITESPACE
+    | "client_header_buffer_size" ~ &WHITESPACE
+    | "proxy_connect_timeout" ~ &WHITESPACE
+    | "proxy_read_timeout" ~ &WHITESPACE
+    | "proxy_send_timeout" ~ &WHITESPACE
+    | "proxy_buffer_size" ~ &WHITESPACE
+}
+key_location_block = @{
+    "proxy_pass" ~ &WHITESPACE
+    | "proxy_redirect" ~ &WHITESPACE
+    | "proxy_set_header" ~ &WHITESPACE
+    | "root" ~ &WHITESPACE
+    | "index" ~ &WHITESPACE
+    | "try_files" ~ &WHITESPACE
+}
+
+value_string = @{ ( ASCII_ALPHANUMERIC | "_" | "/" | "." | "-" | ":" | "$" )+ }
+value_number = @{ "-"? ~ ( "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" )+ }
+value_location = @{ ( ASCII_ALPHANUMERIC | "~" | "(" | ")" | "/" | "." | "*" | "&" | "-" | "_" | "^" )+ }
+
+// 赋值
+assignment_root = { key_root_block ~ value_string ~ TERMINATOR }
+assignment_events = { key_events_block ~ value_string* ~ TERMINATOR }
+assignment_http = { key_http_block ~ value_string* ~ TERMINATOR }
+assignment_server = { key_server_block ~ value_string* ~ TERMINATOR }
+assignment_location = { key_location_block ~ value_string* ~ TERMINATOR }
+
+// 块
+block_location = { "location" ~ PUSH(value_location) ~ "{" ~ assignment_location* ~ "}" }
+block_server = { "server" ~ "{" ~ ( assignment_server | block_location )* ~ "}" }
+block_events = { "events" ~ "{" ~ assignment_events* ~ "}" }
+block_http = { "http" ~ "{" ~ ( assignment_http | block_server )* ~ "}" }
+
+root = { SOI ~ ( assignment_root | block_events | block_http )* ~ EOI }
